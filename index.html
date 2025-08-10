@@ -1,0 +1,621 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Flood Monitoring - Lokasi Pemasangan</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css" />
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 15px;
+            background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+            height: calc(100vh - 30px);
+            overflow: hidden;
+        }
+        
+        .container {
+            width: 100%;
+            height: calc(100vh - 30px);
+            display: flex;
+            flex-direction: column;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+            overflow: hidden;
+            border: 1px solid #e2e8f0;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #1e40af 0%, #1e3a8a 50%, #1d4ed8 100%);
+            color: white;
+            padding: 20px 30px;
+            text-align: center;
+            flex-shrink: 0;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 100" fill="rgba(255,255,255,0.1)"><polygon points="0,0 1000,0 1000,60 0,100"/></svg>');
+            background-size: cover;
+            pointer-events: none;
+        }
+        
+        .header-content {
+            position: relative;
+            z-index: 1;
+        }
+        
+        .system-badge {
+            display: inline-block;
+            background: rgba(255, 255, 255, 0.2);
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.75em;
+            font-weight: 500;
+            margin-bottom: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+        
+        h1 {
+            margin: 0;
+            font-size: 1.8rem;
+        }
+        
+        .subtitle {
+            margin: 5px 0 0 0;
+            opacity: 0.9;
+        }
+        
+        .content {
+            display: flex;
+            flex: 1;
+            height: calc(100vh - 250px);
+        }
+        
+        #map {
+            flex: 2;
+            width: 100%;
+            height: 100%;
+            position: relative;
+        }
+        
+        .map-controls {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        
+        .zoom-btn {
+            background: rgba(255, 255, 255, 0.95);
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 18px;
+            color: #475569;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+        
+        .zoom-btn:hover {
+            background: #2563eb;
+            color: white;
+            border-color: #2563eb;
+            transform: scale(1.1);
+        }
+        
+        .zoom-btn:active {
+            transform: scale(0.95);
+        }
+        
+        .zoom-level {
+            background: rgba(37, 99, 235, 0.9);
+            color: white;
+            border: 2px solid #2563eb;
+            border-radius: 6px;
+            padding: 4px 8px;
+            font-size: 12px;
+            font-weight: bold;
+            text-align: center;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 2px 8px rgba(37, 99, 235, 0.3);
+        }
+        
+        .locations-list {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            border-left: 1px solid #eee;
+            background: #fafafa;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .controls {
+            margin-bottom: 20px;
+        }
+        
+        .clear-btn {
+            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            width: 100%;
+        }
+        
+        .clear-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+        }
+        
+        .state-stats {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .state-stats h4 {
+            margin: 0 0 15px 0;
+            color: #333;
+            font-size: 1rem;
+            text-align: center;
+        }
+        
+        .state-stats {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .state-stats h4 {
+            margin: 0 0 15px 0;
+            color: #333;
+            font-size: 1rem;
+            text-align: center;
+        }
+        
+        .state-buttons {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+        
+        .state-btn {
+            position: relative;
+            background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 12px 8px;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            text-align: center;
+            font-weight: 600;
+            font-size: 0.85em;
+            color: #475569;
+            min-height: 60px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .state-btn:hover {
+            transform: translateY(-2px) scale(1.02);
+            background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+            color: white;
+            border-color: #2563eb;
+            box-shadow: 0 8px 25px rgba(37, 99, 235, 0.3);
+        }
+        
+        .state-btn:active {
+            transform: translateY(0) scale(0.98);
+        }
+        
+        .state-name {
+            font-size: 0.9em;
+            margin-bottom: 2px;
+        }
+        
+        .location-count {
+            position: absolute;
+            top: -8px;
+            right: -8px;
+            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+            color: white;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.75em;
+            font-weight: bold;
+            border: 2px solid white;
+            box-shadow: 0 2px 8px rgba(239, 68, 68, 0.3);
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0% {
+                box-shadow: 0 2px 8px rgba(239, 68, 68, 0.3);
+            }
+            50% {
+                box-shadow: 0 4px 16px rgba(239, 68, 68, 0.5);
+            }
+            100% {
+                box-shadow: 0 2px 8px rgba(239, 68, 68, 0.3);
+            }
+        }
+        
+        .state-btn.selected {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: white;
+            border-color: #10b981;
+            transform: translateY(-2px) scale(1.02);
+            box-shadow: 0 8px 25px rgba(16, 185, 129, 0.3);
+        }
+        
+        .state-btn.selected .location-count {
+            background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+        }
+        
+        .location-item {
+            background: white;
+            margin-bottom: 10px;
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid #2563eb;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .location-item:hover {
+            transform: translateX(5px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+        }
+        
+        .location-name {
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 5px;
+        }
+        
+        .location-coords {
+            font-size: 0.9em;
+            color: #666;
+        }
+        
+        .state {
+            color: #2563eb;
+            font-weight: bold;
+        }
+        
+        .stats {
+            padding: 15px 30px;
+            background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+            border-top: 1px solid #e2e8f0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            color: #64748b;
+            flex-shrink: 0;
+        }
+        
+        .stats-left {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+        
+        .stats-right {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            font-size: 0.85em;
+        }
+        
+        .company-info {
+            display: flex;
+            flex-direction: column;
+            text-align: right;
+            line-height: 1.4;
+        }
+        
+        .developed-by {
+            color: #475569;
+            font-weight: 500;
+        }
+        
+        .powered-by {
+            color: #64748b;
+            font-size: 0.9em;
+        }
+        
+        .logo-placeholder {
+            width: 24px;
+            height: 24px;
+            background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            font-size: 0.8em;
+        }
+        
+        @media (max-width: 768px) {
+            .content {
+                flex-direction: column;
+                height: auto;
+            }
+            
+            #map {
+                height: 400px;
+            }
+            
+            .locations-list {
+                border-left: none;
+                border-top: 1px solid #eee;
+                max-height: 300px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="header-content">
+                <div class="system-badge">🛡️ REAL-TIME MONITORING SYSTEM</div>
+                <h1>🌊 Smart Flood Monitoring</h1>
+                <p class="subtitle">Sistem Pemantauan Banjir Pintar • Teknologi IoT Terkini</p>
+            </div>
+        </div>
+        
+        <div class="content">
+            <div id="map">
+                <div class="map-controls">
+                    <div class="zoom-btn" onclick="zoomIn()">+</div>
+                    <div class="zoom-level" id="zoomLevel">7</div>
+                    <div class="zoom-btn" onclick="zoomOut()">−</div>
+                </div>
+            </div>
+            
+            <div class="locations-list">
+                <div class="controls">
+                    <button class="clear-btn" onclick="clearSelection()">🔍 Tunjuk Keseluruhan</button>
+                </div>
+                
+                <div class="state-stats">
+                    <h4>🗺️ Pilih Negeri</h4>
+                    <div class="state-buttons" id="stateButtons"></div>
+                </div>
+                
+                <h3 style="margin-top: 0; color: #333;">📍 Senarai Lokasi</h3>
+                <div id="locationsList"></div>
+            </div>
+        </div>
+        
+        <div class="stats">
+            <div class="stats-left">
+                <span id="totalLocations">15 lokasi pemasangan</span>
+                <span>•</span>
+                <span id="totalStates">6 negeri</span>
+                <span>•</span>
+                <span style="color: #10b981; font-weight: 500;">✅ Semua Sistem Aktif</span>
+            </div>
+            <div class="stats-right">
+                <div class="company-info">
+                    <div class="developed-by">📡 Disediakan oleh CARA Technologies Sdn Bhd</div>
+                    <div class="powered-by">⚡ Powered by NASADEF Sdn Bhd</div>
+                </div>
+                <div class="logo-placeholder">CT</div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+    <script>
+        // Initialize the map
+        var map = L.map('map').setView([4.5, 102], 7);
+        var currentZoom = 7;
+        
+        // Add tile layer
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 19,
+            attribution: '© OpenStreetMap contributors'
+        }).addTo(map);
+        
+        // Location data
+        var locations = [
+            ["Johor - Kota Tinggi - Jln Lok Heng - Sg Mas", 1.674128, 104.120837],
+            ["Kedah - Kota Setar - Gunung Hilir", 6.18868, 100.3386],
+            ["Kelantan - Kuala Krai - KG BELANGA", 5.483775, 102.241581],
+            ["Kelantan - Kuala Krai - TKKU", 5.564771, 102.14394],
+            ["Kelantan - Tanah Merah - Kg Lawang", 5.789103, 101.976087],
+            ["Kelantan - Pasir Puteh - Gong Kulim", 5.83786, 102.419185],
+            ["Kelantan - Pasir Mas - Repek", 6.025625, 102.093911],
+            ["Kelantan - Tumpat - Terbok", 6.1849, 102.166767],
+            ["Negeri Sembilan - Tampin - Felda Bukit Rokan", 2.6064, 102.4022],
+            ["Pahang - Kuantan - Kg Balok", 3.93734, 103.37576],
+            ["Pahang - Kecil Jelai - Sg. Koyan 2", 4.20882, 101.79642],
+            ["Terengganu - Dungun - T3_0320-KG. WAWASAN", 4.69283, 103.34275],
+            ["Terengganu - Dungun - Taman Rakyat Jaya", 4.745886, 103.406119],
+            ["Terengganu - Kuala Terengganu - Kampung Petai Bubus", 5.33788, 103.07882],
+            ["Terengganu - Besut - Kg Gong Kepas", 5.78124, 102.555]
+        ];
+        
+        // Store markers for interaction
+        var markers = {};
+        
+        // Add markers to map and create list
+        var locationsList = document.getElementById('locationsList');
+        var stateButtons = document.getElementById('stateButtons');
+        
+        // Count locations by state
+        var stateCounts = {};
+        locations.forEach(function(loc) {
+            var state = loc[0].split(' - ')[0];
+            stateCounts[state] = (stateCounts[state] || 0) + 1;
+        });
+        
+        // State coordinates for zooming
+        var stateCoords = {
+            'Johor': [1.674128, 104.120837, 10],
+            'Kedah': [6.18868, 100.3386, 10],
+            'Kelantan': [5.7, 102.0, 9],
+            'Negeri Sembilan': [2.6064, 102.4022, 10],
+            'Pahang': [4.0, 102.5, 9],
+            'Terengganu': [5.2, 103.0, 9]
+        };
+        
+        // Zoom control functions
+        function updateZoomLevel() {
+            currentZoom = map.getZoom();
+            document.getElementById('zoomLevel').textContent = Math.round(currentZoom);
+        }
+        
+        function zoomIn() {
+            map.zoomIn();
+            updateZoomLevel();
+        }
+        
+        function zoomOut() {
+            map.zoomOut();
+            updateZoomLevel();
+        }
+        
+        // Listen to zoom events
+        map.on('zoomend', updateZoomLevel);
+        
+        // Create state buttons
+        function createStateButtons() {
+            Object.keys(stateCounts).sort().forEach(function(state) {
+                var button = document.createElement('div');
+                button.className = 'state-btn';
+                button.setAttribute('data-state', state);
+                
+                button.innerHTML = 
+                    '<div class="state-name">' + state + '</div>' +
+                    '<div class="location-count">' + stateCounts[state] + '</div>';
+                
+                // Add click event to zoom to state
+                button.addEventListener('click', function() {
+                    var coords = stateCoords[state];
+                    if (coords) {
+                        map.setView([coords[0], coords[1]], coords[2]);
+                    }
+                    
+                    // Update button states
+                    document.querySelectorAll('.state-btn').forEach(function(btn) {
+                        btn.classList.remove('selected');
+                    });
+                    button.classList.add('selected');
+                    
+                    // Filter and highlight locations for this state
+                    document.querySelectorAll('.location-item').forEach(function(item) {
+                        var itemState = item.querySelector('.state-name').textContent;
+                        if (itemState === state) {
+                            item.style.borderLeftColor = '#10b981';
+                            item.style.display = 'block';
+                        } else {
+                            item.style.borderLeftColor = '#e5e7eb';
+                            item.style.opacity = '0.5';
+                        }
+                    });
+                });
+                
+                stateButtons.appendChild(button);
+            });
+        }
+        
+        // Initialize state buttons
+        createStateButtons();
+        
+        // Function to clear selection and show overall view
+        function clearSelection() {
+            map.setView([4.5, 102], 7);
+            updateZoomLevel();
+            document.querySelectorAll('.location-item').forEach(function(item) {
+                item.style.borderLeftColor = '#2563eb';
+                item.style.opacity = '1';
+                item.style.display = 'block';
+            });
+            document.querySelectorAll('.state-btn').forEach(function(btn) {
+                btn.classList.remove('selected');
+            });
+        }
+        
+        locations.forEach(function(loc, index) {
+            var name = loc[0];
+            var lat = loc[1];
+            var lng = loc[2];
+            
+            // Create marker with custom popup
+            var marker = L.marker([lat, lng]).addTo(map)
+                .bindPopup('<div style="font-weight: bold; margin-bottom: 5px; color: #2563eb;">🌊 ' + name + '</div>' +
+                          '<div style="color: #666;">📍 Lat: ' + lat + ', Lng: ' + lng + '</div>' +
+                          '<div style="color: #059669; font-size: 0.9em; margin-top: 5px;">✅ Sistem Aktif</div>');
+            
+            markers[index] = marker;
+            
+            // Create list item
+            var listItem = document.createElement('div');
+            listItem.className = 'location-item';
+            listItem.innerHTML = 
+                '<div class="location-name">' + 
+                '<span class="state">' + name.split(' - ')[0] + '</span> - ' +
+                name.substring(name.indexOf(' - ') + 3) + 
+                '</div>' +
+                '<div class="location-coords">📍 ' + lat + ', ' + lng + '</div>';
+            
+            // Add click event to zoom to location
+            listItem.addEventListener('click', function() {
+                map.setView([lat, lng], 12);
+                marker.openPopup();
+                
+                // Highlight selected item
+                document.querySelectorAll('.location-item').forEach(function(item) {
+                    item.style.borderLeftColor = '#2563eb';
+                });
+                listItem.style.borderLeftColor = '#ef4444';
+            });
+            
+            locationsList.appendChild(listItem);
+        });
+        
+        // Update stats
+        var states = [...new Set(locations.map(loc => loc[0].split(' - ')[0]))];
+        document.getElementById('totalStates').textContent = states.length + ' negeri';
+        document.getElementById('totalLocations').textContent = locations.length + ' lokasi pemasangan';
+    </script>
+</body>
+</html>
