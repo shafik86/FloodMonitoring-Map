@@ -341,6 +341,7 @@ h1 {
 .logo-container {
     width: 120px;
     height: 40px;
+
     background: transparent;
     border-radius: 8px;
     border: 2px solid #e2e8f0;
