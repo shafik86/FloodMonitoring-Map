@@ -337,14 +337,19 @@ h1 {
     font-size: 0.9em;
 }
 
-/* Updated logo styles for better visibility */
+/* Updated logo styles for multiple logos */
+.logos-container {
+    display: flex;
+    gap: 15px;
+    align-items: center;
+}
+
 .logo-container {
     width: 120px;
     height: 40px;
-
     background: transparent;
-    border-radius: 8px;
     border: 2px solid #e2e8f0;
+    border-radius: 8px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -358,25 +363,35 @@ h1 {
     transform: scale(1.05);
 }
 
+.logo-container.cara-logo:hover {
+    border-color: #10b981;
+    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.2);
+}
+
+.logo-container.mcmc-logo:hover {
+    border-color: #2563eb;
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2);
+}
+
 .logo-container img {
     width: 105px;
     height: 32px;
     border-radius: 4px;
-    object-fit: fill;
+    object-fit: contain;
+    background: transparent;
 }
 
-/* Fallback logo placeholder */
-.logo-placeholder {
-    width: 105px;
-    height: 32px;
-    background: transparent;
-    border-radius: 4px;
+.logo-container a {
     display: flex;
     align-items: center;
     justify-content: center;
-    color: white;
-    font-weight: bold;
-    font-size: 0.8em;
+    width: 100%;
+    height: 100%;
+    text-decoration: none;
+}
+
+.logo-container a:hover {
+    text-decoration: none;
 }
 
 /* Mobile Responsive Styles */
